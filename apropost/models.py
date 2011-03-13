@@ -1,7 +1,10 @@
 from datetime import datetime
+from xml.etree import ElementTree
 
+from django.contrib.auth.models import User
 from django.db import models
 import django_push.subscriber.signals
+import iso8601
 
 
 class Author(models.Model):
@@ -62,37 +65,69 @@ class UserStream(models.Model):
 
 def yo_hay(notification, **kwargs):
     import logging
-    from pprint import pformat
-    logging.getLogger(__name__).debug(pformat(notification))
+    xml = ElementTree.tostring(notification, encoding='utf-8')
+    logging.getLogger(__name__).debug(xml)
 
 def save_items(notification, **kwargs):
-    for feedentry in notification.entries:
+    # TODO: handle entry level authors?
+    author_el = notification.find('{http://www.w3.org/2005/Atom}author')
+    author_id = author_el.findtext('{http://www.w3.org/2005/Atom}uri')
+    try:
+        author = Author.objects.get(atom_id=author_id)
+    except Author.DoesNotExist:
+        author = Author(atom_id=author_id)
+
+    author.screen_name = author_el.findtext('{http://portablecontacts.net/spec/1.0}preferredUsername')
+    author.display_name = author_el.findtext('{http://portablecontacts.net/spec/1.0}displayName')
+    #author.description = ...?
+    author.location = author_el.findtext('{http://portablecontacts.net/spec/1.0}address/{http://portablecontacts.net/spec/1.0}formatted')
+    # ugh homepage url
+    for url_el in author_el.findall('{http://portablecontacts.net/spec/1.0}urls'):
+        if url_el.findtext('{http://portablecontacts.net/spec/1.0}type') in ('home', 'homepage') and url_el.findtext('{http://portablecontacts.net/spec/1.0}primary') == 'true':
+            author.homepage_url = url_el.findtext('{http://portablecontacts.net/spec/1.0}value')
+
+    author.save()
+
+    for entry_el in notification.findall('{http://www.w3.org/2005/Atom}entry'):
+        # TODO: care about things other than notes?
+        if entry_el.findtext('{http://activitystrea.ms/spec/1.0/}object-type') != 'http://activitystrea.ms/schema/1.0/note':
+            continue
+        # TODO: care about activity other than posts
+        if entry_el.findtext('{http://activitystrea.ms/spec/1.0/}verb') != 'http://activitystrea.ms/schema/1.0/post':
+            continue
+
         # TODO: is this publisher authoritative for this atom id?
-        atom_id = feedentry.id
+        atom_id = entry_el.findtext('{http://www.w3.org/2005/Atom}id')
         try:
             status = Status.objects.get(atom_id=atom_id)
         except Status.DoesNotExist:
             status = Status(atom_id=atom_id)
 
         # TODO: try content first if there ever is one
-        status.text = feedentry.summary
+        content = entry_el.find('{http://www.w3.org/2005/Atom}content')
+        content_type = content.get('type', 'html')
+        if content_type == 'html':
+            status.text = content.text
+        else:
+            raise ValueError("Unsupported content element type %r" % content_type)
 
-        # TODO: try entry author if there ever is one
-        feed = notification.feed
-        author_url = feed.author_detail.href
-        try:
-            author = Author.objects.get(url=author_url)
-        except Author.DoesNotExist:
-            author = Author(url=author_url)
+        notice_info = entry_el.find('{http://status.net/schema/api/1/}notice_info')
+        if notice_info is not None:
+            source = notice_info.get('source')
+            if source:
+                status.source = source
 
-        author.screen_name = feed.poco_preferredusername
-        author.display_name = feed.poco_displayname
-        author.location = feed.formatted  # ?!
-        #author.description = feed.butt
-        author.save()
+        published_ts = entry_el.findtext('{http://www.w3.org/2005/Atom}published')
+        published = iso8601.parse_date(published_ts).astimezone(iso8601.iso8601.Utc())
+        status.created_at = published.replace(tzinfo=None)
 
         status.author = author
         status.save()
 
-django_push.subscriber.signals.updated.connect(yo_hay)
-django_push.subscriber.signals.updated.connect(save_items)
+        # TODO: only UserStream the ones that a user has subscribed to?
+        user = User.objects.get(pk=1)
+        item, created = UserStream.objects.get_or_create(user=user, status=status,
+            defaults={'display_at': status.created_at})
+
+#django_push.subscriber.signals.updated_xml.connect(yo_hay)
+django_push.subscriber.signals.updated_xml.connect(save_items)
