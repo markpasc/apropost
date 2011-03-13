@@ -19,6 +19,9 @@ class Author(models.Model):
     #utc_offset = ...
     #time_zone = ...
 
+    def __unicode__(self):
+        return u'<Author %s (%s)>' % (self.screen_name, self.display_name)
+
 
 class Status(models.Model):
 
