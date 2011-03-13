@@ -28,6 +28,7 @@ class Status(models.Model):
     author = models.ForeignKey(Author)
     text = models.TextField()
     source = models.CharField(max_length=200)
+    created_at = models.DateTimeField(default=datetime.now)
 
     in_reply_to = models.ForeignKey('Status', blank=True, null=True, related_name='replies')
     conversation = models.ForeignKey('Status', blank=True, null=True, related_name='conversation_replies')
