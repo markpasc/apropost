@@ -5,11 +5,11 @@ from django.db import models
 
 class Author(models.Model):
 
+    url = models.CharField(max_length=200, unique=True)
     screen_name = models.CharField(max_length=200)
     display_name = models.CharField(max_length=200)
     location = models.CharField(max_length=200, blank=True)
     description = models.CharField(max_length=200, blank=True)
-    url = models.CharField(max_length=200, blank=True)
     created_at = models.DateTimeField()
     user = models.ForeignKey('auth.User', blank=True, null=True, unique=True)
 
@@ -25,6 +25,7 @@ class Author(models.Model):
 
 class Status(models.Model):
 
+    atom_id = models.CharField(max_length=200)
     author = models.ForeignKey(Author)
     text = models.TextField()
     source = models.CharField(max_length=200)
