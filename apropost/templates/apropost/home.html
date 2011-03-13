@@ -39,7 +39,11 @@
         <h1>sup, {{ author.display_name }}.</h1>
 
         {% for item in stream %}
-            <p>{{ item }}</p>
+            <p>
+                “{{ item.status.text }}”
+                —<a href="{{ item.status.author.url }}">{{ item.status.author.display_name }}</a>
+                {{ item.status.created_at.isoformat }}
+            </p>
         {% endfor %}
 
     </div>
