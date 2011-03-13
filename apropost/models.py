@@ -20,7 +20,7 @@ class Author(models.Model):
     #time_zone = ...
 
     def __unicode__(self):
-        return u'<Author %s (%s)>' % (self.screen_name, self.display_name)
+        return u'%s (%s)' % (self.screen_name, self.display_name)
 
 
 class Status(models.Model):
@@ -32,6 +32,9 @@ class Status(models.Model):
 
     in_reply_to = models.ForeignKey('Status', blank=True, null=True, related_name='replies')
     conversation = models.ForeignKey('Status', blank=True, null=True, related_name='conversation_replies')
+
+    def __unicode__(self):
+        return u'%s: "%s"' % (self.author.screen_name, self.text[:100])
 
     class Meta:
         verbose_name_plural = 'statuses'
@@ -49,3 +52,6 @@ class UserStream(models.Model):
     status = models.ForeignKey(Status)
     display_at = models.DateTimeField()
     why = models.ForeignKey(StreamWhy, blank=True, null=True)
+
+    def __unicode__(self):
+        return u'%r for %s at %s' % (self.status, self.user.username, self.display_at.isoformat(' '))
