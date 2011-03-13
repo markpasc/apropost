@@ -17,8 +17,15 @@ def root(request):
 def home(request):
     stream = UserStream.objects.filter(user=request.user).order_by('-display_at').select_related()
 
+    user_authors = request.user.author_set.all()
+    try:
+        author = user_authors[0]
+    except IndexError:
+        # TODO: should switch to a flow for making an Author for the user?
+        raise
+
     data = {
-        'author': request.user.author_set.all()[0],
+        'author': author,
         'stream': stream[:20],
     }
 

@@ -1,16 +1,18 @@
 from datetime import datetime
 
 from django.db import models
+import django_push.subscriber.signals
 
 
 class Author(models.Model):
 
-    url = models.CharField(max_length=200, unique=True)
+    atom_id = models.CharField(max_length=200, unique=True)
     screen_name = models.CharField(max_length=200)
     display_name = models.CharField(max_length=200)
     location = models.CharField(max_length=200, blank=True)
     description = models.CharField(max_length=200, blank=True)
-    created_at = models.DateTimeField()
+    homepage_url = models.CharField(max_length=200, blank=True)
+    created_at = models.DateTimeField(default=datetime.now)
     user = models.ForeignKey('auth.User', blank=True, null=True, unique=True)
 
     #profile_image_url = ...
@@ -56,3 +58,41 @@ class UserStream(models.Model):
 
     def __unicode__(self):
         return u'%r for %s at %s' % (self.status, self.user.username, self.display_at.isoformat(' '))
+
+
+def yo_hay(notification, **kwargs):
+    import logging
+    from pprint import pformat
+    logging.getLogger(__name__).debug(pformat(notification))
+
+def save_items(notification, **kwargs):
+    for feedentry in notification.entries:
+        # TODO: is this publisher authoritative for this atom id?
+        atom_id = feedentry.id
+        try:
+            status = Status.objects.get(atom_id=atom_id)
+        except Status.DoesNotExist:
+            status = Status(atom_id=atom_id)
+
+        # TODO: try content first if there ever is one
+        status.text = feedentry.summary
+
+        # TODO: try entry author if there ever is one
+        feed = notification.feed
+        author_url = feed.author_detail.href
+        try:
+            author = Author.objects.get(url=author_url)
+        except Author.DoesNotExist:
+            author = Author(url=author_url)
+
+        author.screen_name = feed.poco_preferredusername
+        author.display_name = feed.poco_displayname
+        author.location = feed.formatted  # ?!
+        #author.description = feed.butt
+        author.save()
+
+        status.author = author
+        status.save()
+
+django_push.subscriber.signals.updated.connect(yo_hay)
+django_push.subscriber.signals.updated.connect(save_items)
