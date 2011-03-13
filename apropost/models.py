@@ -11,7 +11,7 @@ class Author(models.Model):
     description = models.CharField(max_length=200, blank=True)
     url = models.CharField(max_length=200, blank=True)
     created_at = models.DateTimeField()
-    user = models.ForeignKey('auth.User', blank=True, null=True, unique=True, related_name='author')
+    user = models.ForeignKey('auth.User', blank=True, null=True, unique=True)
 
     #profile_image_url = ...
     #lang = ...
