@@ -11,26 +11,43 @@ class Migration(SchemaMigration):
         # Adding model 'Author'
         db.create_table('apropost_author', (
             ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
+            ('atom_id', self.gf('django.db.models.fields.CharField')(unique=True, max_length=200)),
             ('screen_name', self.gf('django.db.models.fields.CharField')(max_length=200)),
             ('display_name', self.gf('django.db.models.fields.CharField')(max_length=200)),
             ('location', self.gf('django.db.models.fields.CharField')(max_length=200, blank=True)),
             ('description', self.gf('django.db.models.fields.CharField')(max_length=200, blank=True)),
-            ('url', self.gf('django.db.models.fields.CharField')(max_length=200, blank=True)),
-            ('created_at', self.gf('django.db.models.fields.DateTimeField')()),
-            ('user', self.gf('django.db.models.fields.related.ForeignKey')(blank=True, related_name='author', unique=True, null=True, to=orm['auth.User'])),
+            ('homepage_url', self.gf('django.db.models.fields.CharField')(max_length=200, blank=True)),
+            ('created_at', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
+            ('user', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['auth.User'], unique=True, null=True, blank=True)),
         ))
         db.send_create_signal('apropost', ['Author'])
 
-        # Adding model 'Status'
-        db.create_table('apropost_status', (
+        # Adding model 'Image'
+        db.create_table('apropost_image', (
             ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('author', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['apropost.Author'])),
-            ('text', self.gf('django.db.models.fields.TextField')()),
-            ('source', self.gf('django.db.models.fields.CharField')(max_length=200)),
-            ('in_reply_to', self.gf('django.db.models.fields.related.ForeignKey')(blank=True, related_name='replies', null=True, to=orm['apropost.Status'])),
-            ('conversation', self.gf('django.db.models.fields.related.ForeignKey')(blank=True, related_name='conversation_replies', null=True, to=orm['apropost.Status'])),
+            ('image_url', self.gf('django.db.models.fields.CharField')(unique=True, max_length=200)),
+            ('width', self.gf('django.db.models.fields.IntegerField')()),
+            ('height', self.gf('django.db.models.fields.IntegerField')()),
         ))
-        db.send_create_signal('apropost', ['Status'])
+        db.send_create_signal('apropost', ['Image'])
+
+        # Adding model 'Post'
+        db.create_table('apropost_post', (
+            ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
+            ('atom_id', self.gf('django.db.models.fields.CharField')(max_length=200)),
+            ('author', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['apropost.Author'], null=True, blank=True)),
+            ('avatar', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['apropost.Image'], null=True, blank=True)),
+            ('title', self.gf('django.db.models.fields.CharField')(max_length=255, blank=True)),
+            ('text', self.gf('django.db.models.fields.TextField')(blank=True)),
+            ('source', self.gf('django.db.models.fields.CharField')(max_length=200, blank=True)),
+            ('created', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
+            ('published', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
+            ('in_reply_to', self.gf('django.db.models.fields.related.ForeignKey')(blank=True, related_name='replies', null=True, to=orm['apropost.Post'])),
+            ('conversation', self.gf('django.db.models.fields.related.ForeignKey')(blank=True, related_name='conversation_replies', null=True, to=orm['apropost.Post'])),
+            ('render_mode', self.gf('django.db.models.fields.CharField')(default='mixed', max_length=15, blank=True)),
+            ('permalink_url', self.gf('django.db.models.fields.CharField')(max_length=255, null=True, blank=True)),
+        ))
+        db.send_create_signal('apropost', ['Post'])
 
         # Adding model 'StreamWhy'
         db.create_table('apropost_streamwhy', (
@@ -44,7 +61,7 @@ class Migration(SchemaMigration):
         db.create_table('apropost_userstream', (
             ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
             ('user', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['auth.User'])),
-            ('status', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['apropost.Status'])),
+            ('post', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['apropost.Post'])),
             ('display_at', self.gf('django.db.models.fields.DateTimeField')()),
             ('why', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['apropost.StreamWhy'], null=True, blank=True)),
         ))
@@ -56,8 +73,11 @@ class Migration(SchemaMigration):
         # Deleting model 'Author'
         db.delete_table('apropost_author')
 
-        # Deleting model 'Status'
-        db.delete_table('apropost_status')
+        # Deleting model 'Image'
+        db.delete_table('apropost_image')
+
+        # Deleting model 'Post'
+        db.delete_table('apropost_post')
 
         # Deleting model 'StreamWhy'
         db.delete_table('apropost_streamwhy')
@@ -69,23 +89,38 @@ class Migration(SchemaMigration):
     models = {
         'apropost.author': {
             'Meta': {'object_name': 'Author'},
-            'created_at': ('django.db.models.fields.DateTimeField', [], {}),
+            'atom_id': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '200'}),
+            'created_at': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'description': ('django.db.models.fields.CharField', [], {'max_length': '200', 'blank': 'True'}),
             'display_name': ('django.db.models.fields.CharField', [], {'max_length': '200'}),
+            'homepage_url': ('django.db.models.fields.CharField', [], {'max_length': '200', 'blank': 'True'}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'location': ('django.db.models.fields.CharField', [], {'max_length': '200', 'blank': 'True'}),
             'screen_name': ('django.db.models.fields.CharField', [], {'max_length': '200'}),
-            'url': ('django.db.models.fields.CharField', [], {'max_length': '200', 'blank': 'True'}),
-            'user': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'author'", 'unique': 'True', 'null': 'True', 'to': "orm['auth.User']"})
+            'user': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['auth.User']", 'unique': 'True', 'null': 'True', 'blank': 'True'})
         },
-        'apropost.status': {
-            'Meta': {'object_name': 'Status'},
-            'author': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['apropost.Author']"}),
-            'conversation': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'conversation_replies'", 'null': 'True', 'to': "orm['apropost.Status']"}),
+        'apropost.image': {
+            'Meta': {'object_name': 'Image'},
+            'height': ('django.db.models.fields.IntegerField', [], {}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'in_reply_to': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'replies'", 'null': 'True', 'to': "orm['apropost.Status']"}),
-            'source': ('django.db.models.fields.CharField', [], {'max_length': '200'}),
-            'text': ('django.db.models.fields.TextField', [], {})
+            'image_url': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '200'}),
+            'width': ('django.db.models.fields.IntegerField', [], {})
+        },
+        'apropost.post': {
+            'Meta': {'object_name': 'Post'},
+            'atom_id': ('django.db.models.fields.CharField', [], {'max_length': '200'}),
+            'author': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['apropost.Author']", 'null': 'True', 'blank': 'True'}),
+            'avatar': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['apropost.Image']", 'null': 'True', 'blank': 'True'}),
+            'conversation': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'conversation_replies'", 'null': 'True', 'to': "orm['apropost.Post']"}),
+            'created': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
+            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'in_reply_to': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'replies'", 'null': 'True', 'to': "orm['apropost.Post']"}),
+            'permalink_url': ('django.db.models.fields.CharField', [], {'max_length': '255', 'null': 'True', 'blank': 'True'}),
+            'published': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
+            'render_mode': ('django.db.models.fields.CharField', [], {'default': "'mixed'", 'max_length': '15', 'blank': 'True'}),
+            'source': ('django.db.models.fields.CharField', [], {'max_length': '200', 'blank': 'True'}),
+            'text': ('django.db.models.fields.TextField', [], {'blank': 'True'}),
+            'title': ('django.db.models.fields.CharField', [], {'max_length': '255', 'blank': 'True'})
         },
         'apropost.streamwhy': {
             'Meta': {'object_name': 'StreamWhy'},
@@ -97,7 +132,7 @@ class Migration(SchemaMigration):
             'Meta': {'object_name': 'UserStream'},
             'display_at': ('django.db.models.fields.DateTimeField', [], {}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'status': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['apropost.Status']"}),
+            'post': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['apropost.Post']"}),
             'user': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['auth.User']"}),
             'why': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['apropost.StreamWhy']", 'null': 'True', 'blank': 'True'})
         },

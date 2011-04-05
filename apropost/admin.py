@@ -9,20 +9,20 @@ class AuthorAdmin(admin.ModelAdmin):
 admin.site.register(Author, AuthorAdmin)
 
 
-class StatusAdmin(admin.ModelAdmin):
-    list_display = ('id', 'author__screen_name', 'created_at', 'text', 'source')
+class PostAdmin(admin.ModelAdmin):
+    list_display = ('id', 'author__screen_name', 'created', 'published', 'text', 'source')
 
     def author__screen_name(self, obj):
         return obj.author.screen_name
 
-admin.site.register(Status, StatusAdmin)
+admin.site.register(Post, PostAdmin)
 
 
 admin.site.register(StreamWhy)
 
 
 class UserStreamAdmin(admin.ModelAdmin):
-    list_display = ('user', 'status', 'display_at', 'why')
+    list_display = ('user', 'post', 'display_at', 'why')
 
     def why(self, obj):
         if obj.why is None:
