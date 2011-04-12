@@ -1,0 +1,11 @@
+{% extends "apropost/base.html" %}
+
+{% block content %}
+
+    <form method="POST" action="{% url root %}">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <p><input type="submit" value="Sign in"> or <a href="{% url register %}">register</a></p>
+    </form>
+
+{% endblock %}
