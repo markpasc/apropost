@@ -10,3 +10,8 @@ class UserCreationForm(django.contrib.auth.forms.UserCreationForm):
         error_messages={
             'invalid': _("This value may contain only letters and numbers (and '-' characters, if they're in the middle)."),
         })
+
+
+class AddSubscriptionForm(forms.Form):
+
+    url = forms.URLField()

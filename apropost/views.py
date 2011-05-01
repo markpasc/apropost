@@ -7,9 +7,11 @@ from django.contrib.sites.models import Site
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
+from django_push.subscriber.models import Subscription
+import feedparser
 
-from apropost.models import UserStream, Author
-from apropost.forms import UserCreationForm
+from apropost.models import UserStream, Author, AuthorSubscription
+from apropost.forms import UserCreationForm, AddSubscriptionForm
 
 
 def root(request):
@@ -47,3 +49,42 @@ def home(request):
     }
 
     return render(request, 'apropost/home.html', data)
+
+
+@login_required
+def add_subscription(request):
+    if request.method == 'POST':
+        form = AddSubscriptionForm(request.POST)
+        if form.is_valid():
+
+            url = form.cleaned_data['url']
+            # Is this a feed or a web page with a feed?
+
+            feed_url = url
+            buh = feedparser.parse(feed_url)
+            if buh.bozo and buh['headers']['content-type'].startswith('text/html'):
+                feedlinks = [l['href'] for l in buh.feed.links if l['rel'] == 'alternate' and l['type'] in ('application/atom+xml', 'application/rss+xml')]
+                if feedlinks:
+                    feed_url = feedlinks[0]
+                    buh = feedparser.parse(feed_url)
+
+            hublinks = [l['href'] for l in buh.feed.links if l['rel'] == 'hub']
+            if hublinks:
+                hub_url = hublinks[0]
+            else:
+                raise ValueError("No such hub for %s :(" % feed_url)
+
+            sub = Subscription.objects.subscribe(feed_url, hub=hub_url)
+            author = Author.objects.create(
+                atom_id=url,
+                display_name=buh.feed.title,
+                homepage_url=url,
+            )
+            AuthorSubscription.objects.create(author=author, subscription=sub)
+
+            return HttpResponseRedirect(reverse('home'))
+    else:
+        form = AddSubscriptionForm()
+
+    data = {'form': form}
+    return render(request, 'apropost/subscribe.html', data)

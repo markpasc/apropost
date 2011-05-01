@@ -1,0 +1,12 @@
+{% extends "apropost/base.html" %}
+
+{% block content %}
+
+    <form method="POST" action="{% url subscribe %}">
+        {% csrf_token %}
+        {{ form.as_p }}
+
+        <p><input type="submit" value="Subscribe"></p>
+    </form>
+
+{% endblock %}

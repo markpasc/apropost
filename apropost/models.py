@@ -6,6 +6,7 @@ from xml.etree import ElementTree
 from django.contrib.auth.models import User
 from django.db import models
 import django_push.subscriber.signals
+from django_push.subscriber.models import Subscription
 import iso8601
 
 
@@ -50,6 +51,12 @@ class Author(models.Model):
 
         author.save()
         return author
+
+
+class AuthorSubscription(models.Model):
+
+    author = models.ForeignKey(Author)
+    subscription = models.ForeignKey(Subscription, unique=True)
 
 
 class Image(models.Model):
@@ -175,9 +182,15 @@ def yo_hay(notification, **kwargs):
 
 def save_items(notification, **kwargs):
     feed_author_el = notification.find('./{http://www.w3.org/2005/Atom}author')
+    if feed_author_el is None:
+        sender = kwargs['sender']
+        assert isinstance(sender, Subscription)
+        feed_author = AuthorSubscription.objects.get(subscription=sender).author
+    else:
+        feed_author = Author.from_element(feed_author_el)
 
     for entry_el in notification.findall('{http://www.w3.org/2005/Atom}entry'):
-        post = Post.from_element(entry_el, feed_author_el=feed_author_el)
+        post = Post.from_element(entry_el, feed_author=feed_author)
         post.save()
 
         # TODO: only UserStream the ones that a user has subscribed to?
