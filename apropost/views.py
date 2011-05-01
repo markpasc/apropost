@@ -29,13 +29,6 @@ def register(request):
             userdomain = '%s.%s' % (user.username, root_site.domain)
             new_url = 'http://%s%s' % (userdomain, reverse('home'))
 
-            Author.objects.create(
-                user=user,
-                screen_name=user.username,
-                display_name=user.username,
-                atom_id='http://%s.%s/' % (user.username, root_site.domain),
-            )
-
             django.contrib.auth.login(request, user)
             return HttpResponseRedirect(new_url)
     else:
@@ -49,15 +42,7 @@ def register(request):
 def home(request):
     stream = UserStream.objects.filter(user=request.user).order_by('-display_at').select_related()
 
-    user_authors = request.user.author_set.all()
-    try:
-        author = user_authors[0]
-    except IndexError:
-        # TODO: should switch to a flow for making an Author for the user?
-        raise
-
     data = {
-        'author': author,
         'stream': stream[:20],
     }
 

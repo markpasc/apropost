@@ -12,13 +12,11 @@ import iso8601
 class Author(models.Model):
 
     atom_id = models.CharField(max_length=200, unique=True)
-    screen_name = models.CharField(max_length=200)
     display_name = models.CharField(max_length=200)
     location = models.CharField(max_length=200, blank=True)
     description = models.CharField(max_length=200, blank=True)
     homepage_url = models.CharField(max_length=200, blank=True)
     created_at = models.DateTimeField(default=datetime.now)
-    user = models.ForeignKey('auth.User', blank=True, null=True, unique=True)
 
     #profile_image_url = ...
     #lang = ...

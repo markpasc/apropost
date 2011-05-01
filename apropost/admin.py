@@ -4,7 +4,7 @@ from apropost.models import *
 
 
 class AuthorAdmin(admin.ModelAdmin):
-    list_display = ('screen_name', 'display_name', 'atom_id', 'created_at', 'user')
+    list_display = ('display_name', 'atom_id', 'created_at')
 
 admin.site.register(Author, AuthorAdmin)
 
