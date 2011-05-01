@@ -8,7 +8,7 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
 
-from apropost.models import UserStream
+from apropost.models import UserStream, Author
 from apropost.forms import UserCreationForm
 
 
@@ -28,6 +28,13 @@ def register(request):
             root_site = Site.objects.get(pk=settings.SITE_ID)
             userdomain = '%s.%s' % (user.username, root_site.domain)
             new_url = 'http://%s%s' % (userdomain, reverse('home'))
+
+            Author.objects.create(
+                user=user,
+                screen_name=user.username,
+                display_name=user.username,
+                atom_id='http://%s.%s/' % (user.username, root_site.domain),
+            )
 
             django.contrib.auth.login(request, user)
             return HttpResponseRedirect(new_url)
